@@ -52,6 +52,7 @@ auth_router.put("/login_with_token", async (req, res) => {
       name: user.name,
       email: user.email_address,
       role: user.role,
+      _id: user._id,
     });
   } catch (err) {
     return sendError(res, 500, "Server error while validating token.");
@@ -103,6 +104,7 @@ auth_router.put("/login_with_cookie", async (req, res) => {
       name: user.name,
       email: user.email_address,
       role: user.role,
+      _id: user._id,
     });
   } catch (err) {
     return sendError(res, 500, "Server error while validating token.");

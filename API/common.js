@@ -2,12 +2,59 @@ const express = require("express");
 const { isUsersRegistered } = require("../utls/AuthFunctations");
 const { Users } = require("../Models/Users");
 const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
-const Logs = require("../Models/Logs");
-const Labs = require("../Models/Labs");
+// const Logs = require("../Models/Logs");
+// const Labs = require("../Models/Labs");
 const bcrypt = require("bcrypt");
-const Items = require("../Models/Items");
+// const Items = require("../Models/Items");
+const Course = require("../Models/Course");
 const common_router = express.Router();
 
+common_router.get("/get-course/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const course = await Course.findById(id)
+      .populate("instructors")
+    sendSuccess(res, 200, "Course fetched successfully", course);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+common_router.get("/get-courses", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const courses = await Course.find().skip(skip).limit(limit);
+    const total = await Course.countDocuments();
+    res.status(200).json({ success: true, data: courses });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+common_router.get("/search_users", async (req, res) => {
+  const phone = req?.query?.phone;
+  const role = req?.query?.role;
+  const page = req?.query?.page || 1;
+  const skip = page * 12;
+  const filter = {};
+  if (phone) filter.phone = phone;
+  if (role && role != "all") filter.role = role;
+
+  try {
+    const users = await Users.find(filter).skip(skip).limit(12);
+    const usersLength = await Users.find(filter).countDocuments();
+
+    res.status(200).send({
+      success: true,
+      result: { data: users, length: usersLength },
+      message: "found users",
+    });
+  } catch (error) {
+    res.status(404).send({ success: false, result: [], message: "" });
+  }
+});
 // ============ PROFILE MANAGEMENT ============
 
 /**

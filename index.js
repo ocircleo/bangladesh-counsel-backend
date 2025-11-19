@@ -9,10 +9,12 @@ const { auth_router } = require("./Auth");
 const cookieParser = require("cookie-parser");
 const { course_router } = require("./API/Course");
 const { isUserAuthorized } = require("./utls/AuthFunctations");
+const { common_router } = require("./API/common");
 
 //middleware
 const allowedCorsList = [
   "http://localhost:3000",
+  "http://10.239.45.108:3000",
   "http://192.168.0.101:3000",
   "http://192.168.0.100:3000",
   "https://www.bangladeshcounsel.com",
@@ -30,6 +32,7 @@ server.get("/", (req, res) => {
   res.send({ message: "Welcome to BD Counsel Backend API" });
 });
 server.use("/auth", pathMiddleWare, auth_router);
+server.use("/common", pathMiddleWare, common_router);
 server.use("/courses", pathMiddleWare, isUserAuthorized, course_router);
 server.use("/*all", pathMiddleWare, (req, res) => {
   res.send({ error: true, message: "API Path not found", data: {} });

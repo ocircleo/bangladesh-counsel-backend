@@ -2,18 +2,27 @@ const mongoose = require("mongoose");
 
 const CourseSchema = new mongoose.Schema(
   {
-    title: String,
-    description: String,
+    title: { type: String, default: "no title" },
+    description: { type: String, default: "no description" },
     course_image: String,
-    coupon_code: { type: String, default: "" },
+    course_image2: String,
+    category: { type: String, default: "no category" },
+    release_date: { type: String, default: "31-11-2026" },
+    course_location_type: { type: String, default: "in-person" },
+    course_location_city: { type: String, default: "dhaka" },
+    course_location_up: { type: String, default: "savar" },
+    course_location: { type: String, default: "savar radio colony" },
+    course_location_country: { type: String, default: "bangladesh" },
+    type: { type: String, default: "course" },
+    coupon_code: { type: String, default: "31-11-2026" },
     special_offer: { type: Boolean, default: false },
     offer_price: { type: Number, default: 0 },
-    offer_end_date: { type: Date },
+    offer_end_date: { type: String, date: "31-11-2026" },
     totalEnrollment: { type: Number, default: 0 },
-    what_you_will_learn: String,
-    course_includes: String,
-    requirements: String,
-    price: { type: Number, default: 0 },
+    what_you_will_learn: { type: String, default: "none" },
+    course_includes: { type: String, default: "none" },
+    requirements: { type: String, default: "none" },
+    price: { type: Number, default: 1000 },
     ratings: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     published: { type: Boolean, default: false },
@@ -24,5 +33,5 @@ const CourseSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-module.exports = mongoose.model("Course", CourseSchema);
+const Course = mongoose.model("Course", CourseSchema);
+module.exports = Course;
