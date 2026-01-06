@@ -7,13 +7,13 @@ const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
 const bcrypt = require("bcrypt");
 // const Items = require("../Models/Items");
 const Course = require("../Models/Course");
+const { default: Delay } = require("../utls/Delay");
 const common_router = express.Router();
 
 common_router.get("/get-course/:id", async (req, res) => {
   const id = req.params.id;
   try {
-    const course = await Course.findById(id)
-      .populate("instructors")
+    const course = await Course.findById(id).populate("instructors");
     sendSuccess(res, 200, "Course fetched successfully", course);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -21,6 +21,7 @@ common_router.get("/get-course/:id", async (req, res) => {
 });
 common_router.get("/get-courses", async (req, res) => {
   try {
+    //  await Delay(0);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

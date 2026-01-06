@@ -3,7 +3,7 @@ const { Users } = require("./Models/Users");
 const { sendSuccess, sendError } = require("./utls/ReturnFunctations");
 const { generateToken, verifyToken } = require("./utls/JWTFunctions");
 const Token = require("./Models/Token");
-const { prodMode, domain } = require("./modeCofig");
+const { prodMode, domain } = require("./modeConfig");
 const auth_router = express.Router();
 
 auth_router.put("/login_with_token", async (req, res) => {
