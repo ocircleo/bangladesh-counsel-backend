@@ -1,4 +1,4 @@
-const PROD_MODE = false;
+const PROD_MODE = true;
 const WEB_URLS = [
   "lab-inventory-frontend-orpin.vercel.app",
   "192.168.0.100",

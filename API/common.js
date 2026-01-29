@@ -1,34 +1,53 @@
 const express = require("express");
-const { isUsersRegistered } = require("../utls/AuthFunctations");
-const { Users } = require("../Models/Users");
-const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
-// const Logs = require("../Models/Logs");
-// const Labs = require("../Models/Labs");
 const bcrypt = require("bcrypt");
-// const Items = require("../Models/Items");
-const Course = require("../Models/Course");
-const { default: Delay } = require("../utls/Delay");
 const common_router = express.Router();
 
+const { Users } = require("../Models/Users");
+const { Courses } = require("../Models/Course");
+const { accessTokenValidation } = require("../utls/AuthFunctations");
+const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
+
 common_router.get("/get-course/:id", async (req, res) => {
-  const id = req.params.id;
   try {
-    const course = await Course.findById(id).populate("instructors");
+    const id = req.params.id;
+    const course = await Courses.findById(id).populate({ path: "instructors", select: "name" });
     sendSuccess(res, 200, "Course fetched successfully", course);
   } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+common_router.get("/get-course-basic-info/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const course = await Courses.findById(id)
+      .populate({ path: "instructors", select: "name -_id" })
+      .select({
+        title: 1,
+        description: 1,
+        instructors: 1,
+      });
+    sendSuccess(res, 200, "Course fetched successfully", course);
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 common_router.get("/get-courses", async (req, res) => {
   try {
-    //  await Delay(0);
+    //  await Delay(3000);
+    const text = req?.query?.text || "";
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-
-    const courses = await Course.find().skip(skip).limit(limit);
-    const total = await Course.countDocuments();
-    res.status(200).json({ success: true, data: courses });
+    const filters = {};
+    if (text.length > 0) filters["title"] = { $regex: text, $options: "i" };
+    console.log(filters);
+    const courses = await Courses.find(filters).skip(skip).limit(limit);
+    const total = await Courses.countDocuments(filters);
+    res
+      .status(200)
+      .json({ success: true, data: courses, total: Math.ceil(total / limit) });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: error.message });
@@ -63,7 +82,7 @@ common_router.get("/search_users", async (req, res) => {
  * @description Get current user's profile
  * @access Private
  */
-common_router.get("/profile", isUsersRegistered, async (req, res) => {
+common_router.get("/profile", accessTokenValidation, async (req, res) => {
   try {
     const user = await Users.findById(req.user._id).populate("labs");
     if (!user) {
@@ -91,7 +110,7 @@ common_router.get("/profile", isUsersRegistered, async (req, res) => {
  * @description Update user's profile (name, phone, address)
  * @access Private
  */
-common_router.put("/profile", isUsersRegistered, async (req, res) => {
+common_router.put("/profile", accessTokenValidation, async (req, res) => {
   try {
     const { name, phone, address } = req.body;
 
@@ -126,46 +145,48 @@ common_router.put("/profile", isUsersRegistered, async (req, res) => {
  * @description Change user's password
  * @access Private
  */
-common_router.put("/change-password", isUsersRegistered, async (req, res) => {
-  try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+common_router.put(
+  "/change-password",
+  accessTokenValidation,
+  async (req, res) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body;
 
-    // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return sendError(res, 400, "All password fields are required.");
+      // Validation
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return sendError(res, 400, "All password fields are required.");
+      }
+
+      if (newPassword !== confirmPassword) {
+        return sendError(res, 400, "New passwords do not match.");
+      }
+
+      if (newPassword.length < 6) {
+        return sendError(res, 400, "Password must be at least 6 characters.");
+      }
+
+      const user = await Users.findById(req.user._id);
+      if (!user) {
+        return sendError(res, 404, "User not found.");
+      }
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return sendError(res, 401, "Current password is incorrect.");
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await user.save();
+      return sendSuccess(res, 200, "Password changed successfully.");
+    } catch (error) {
+      console.log(error);
+      return sendError(res, 500, "Server error while changing password.");
     }
-
-    if (newPassword !== confirmPassword) {
-      return sendError(res, 400, "New passwords do not match.");
-    }
-
-    if (newPassword.length < 6) {
-      return sendError(res, 400, "Password must be at least 6 characters.");
-    }
-
-    const user = await Users.findById(req.user._id);
-    if (!user) {
-      return sendError(res, 404, "User not found.");
-    }
-
-    // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return sendError(res, 401, "Current password is incorrect.");
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    await user.save();
-    return sendSuccess(res, 200, "Password changed successfully.");
-  } catch (error) {
-    console.log(error);
-    return sendError(res, 500, "Server error while changing password.");
-  }
-});
-
-// ============ DEVICE MANAGEMENT ============
+  },
+);
 
 /**
  * @route GET /common/devices
@@ -173,7 +194,7 @@ common_router.put("/change-password", isUsersRegistered, async (req, res) => {
  * @access Private
  * @query page: number, limit: number
  */
-common_router.get("/labs", isUsersRegistered, async (req, res) => {
+common_router.get("/labs", accessTokenValidation, async (req, res) => {
   try {
     const dept = req.query?.dept; // dept may be -> null, undefined, "",
     const filters = [null, undefined, ""];
@@ -212,7 +233,7 @@ common_router.get("/labs", isUsersRegistered, async (req, res) => {
     return sendError(res, 500, "Server error while retrieving devices.");
   }
 });
-common_router.get("/labs/:labId", isUsersRegistered, async (req, res) => {
+common_router.get("/labs/:labId", accessTokenValidation, async (req, res) => {
   try {
     const labId = req.params.labId;
 
@@ -228,65 +249,5 @@ common_router.get("/labs/:labId", isUsersRegistered, async (req, res) => {
     return sendError(res, 500, "Server error while retrieving devices.");
   }
 });
-
-/**
- * @route PUT /common/devices/:deviceId/mark-status
- * @description Mark device as broken/repaired/replaced/transferred
- * @access Private
- */
-common_router.put(
-  "/devices/:deviceId/mark-status",
-  isUsersRegistered,
-  async (req, res) => {
-    try {
-      const { deviceId } = req.params;
-      const { status, type, message } = req.body;
-
-      // Validate status
-      const validStatuses = [
-        "broken",
-        "repaired",
-        "replaced",
-        "transferred",
-        "under_maintenance",
-      ];
-      const validType = ["whole", "partial", "component"];
-      if (!validStatuses.includes(status)) {
-        status = validStatuses[0];
-      }
-      if (!validType.includes(type)) {
-        type = validType[0];
-      }
-
-      const device = await Items.findById(deviceId);
-      if (!device) {
-        return sendError(res, 404, "Device not found.");
-      }
-
-      // Update device status
-      device.currentState = status;
-      await device.save();
-
-      // Create log entry
-      const log = new Logs({
-        itemId: deviceId,
-        operation: status,
-        message: message || `Device marked as ${status}`,
-        userId: req.user._id,
-        type: type,
-      });
-      await log.save();
-
-      return sendSuccess(res, 200, "Device status updated successfully.", {
-        deviceId: device._id,
-        status: device.currentState,
-        logId: log._id,
-      });
-    } catch (error) {
-      console.log(error);
-      return sendError(res, 500, "Server error while updating device status.");
-    }
-  }
-);
 
 module.exports = { common_router };

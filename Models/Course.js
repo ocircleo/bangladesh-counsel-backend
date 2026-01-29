@@ -3,12 +3,17 @@ const mongoose = require("mongoose");
 const CourseSchema = new mongoose.Schema(
   {
     title: { type: String, default: "no title" },
+    slug: { type: String, index: true, unique: true },
     description: { type: String, default: "no description" },
     course_image: String,
     course_image2: String,
     category: { type: String, default: "no category" },
     release_date: { type: String, default: "31-11-2026" },
-    course_location_type: { type: String, default: "in-person" },
+    course_location_type: {
+      type: String,
+      default: "pre-recorded",
+      enum: ["pre-recorded", "online", "in-person"],
+    },
     course_location_city: { type: String, default: "dhaka" },
     course_location_up: { type: String, default: "savar" },
     course_location: { type: String, default: "savar radio colony" },
@@ -28,10 +33,10 @@ const CourseSchema = new mongoose.Schema(
     published: { type: Boolean, default: false },
     language: { type: [], default: ["English"] },
     modules: [{ type: mongoose.Schema.Types.ObjectId, ref: "Modules" }],
-    instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "Users" }],
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Users" },
+    instructors: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserInfo" }],
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "UserInfo" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-const Course = mongoose.model("Course", CourseSchema);
-module.exports = Course;
+const Courses = mongoose.model("Course", CourseSchema);
+module.exports = { Courses };

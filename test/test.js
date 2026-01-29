@@ -1,17 +1,49 @@
 const express = require("express");
-const UAParser = require("ua-parser-js");
-const { generateToken, verifyToken } = require("../utls/JWTFunctions");
+const { Courses } = require("../Models/Course");
+const { slugGenerator } = require("../utls/Slug");
+const { default: Delay } = require("../utls/Delay");
 const testRouter = express.Router();
 testRouter.get("/ping", (req, res) => {
   Test(req);
   res.send({ message: "pong" });
 });
-testRouter.get("/memory-allocation",(req,res)=>{
-let { rss, heapTotal, heapUsed, external, arrayBuffers } = process.memoryUsage();
+testRouter.get("/memory-allocation", (req, res) => {
+  let { rss, heapTotal, heapUsed, external, arrayBuffers } =
+    process.memoryUsage();
 
-
-res.send({rss: memoryInGB(rss), heapTotal: memoryInGB(heapTotal), heapUsed: memoryInGB(heapUsed), external: memoryInGB(external), arrayBuffers: memoryInGB(arrayBuffers)})
-})
+  res.send({
+    rss: memoryInGB(rss),
+    heapTotal: memoryInGB(heapTotal),
+    heapUsed: memoryInGB(heapUsed),
+    external: memoryInGB(external),
+    arrayBuffers: memoryInGB(arrayBuffers),
+  });
+});
+testRouter.get("/update-slug", async (req, res) => {
+  return res.send("finished updateing slug so no need");
+  try {
+    const courses = await Courses.find({});
+    for (let i = 0; i < courses.length; i++) {
+      const slug = courses[i]?.slug;
+      console.log(slug);
+      if (slug && slug.length > 0) continue;
+      const newSlug = slugGenerator(courses[i].title);
+      let resutlt = await Courses.findByIdAndUpdate(courses[i].id, {
+        slug: newSlug,
+      });
+      console.log(resutlt);
+    }
+    res.send("ok");
+  } catch (error) {
+    console.log(error.message);
+    res.send(error.message);
+  }
+});
+testRouter.get("/delay", async (req, res) => {
+  const delay = Number(req.query.delay);
+  await Delay(delay);
+  res.send({ message: "hello world" });
+});
 const Test = (req) => {
   // const loginLog = {
   //   identifier: email / phone,
@@ -47,7 +79,7 @@ const Test = (req) => {
 
   console.log(log);
 };
-const memoryInGB = (bytes)=>{
-  return (bytes / (1024 ** 2)).toFixed(2) + ' MB';
-}
+const memoryInGB = (bytes) => {
+  return (bytes / 1024 ** 2).toFixed(2) + " MB";
+};
 module.exports = { Test, testRouter };

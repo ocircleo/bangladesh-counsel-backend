@@ -6,9 +6,10 @@ const {
   generateRefreshToken,
   generateToken,
   verifyRefreshToken,
+  verifyAnyToken,
 } = require("../utls/JWTFunctions");
 
-const { sendError } = require("../utls/ReturnFunctations");
+const { sendError, sendSuccess } = require("../utls/ReturnFunctations");
 const { createAuthLog, clearOldAuthLogs } = require("../libs/auth/AuthLog");
 const {
   SaveRefreshToken,
@@ -17,6 +18,8 @@ const {
 
 const { prodMode, domain } = require("../modeConfig");
 const { RefreshToken } = require("../Models/Token");
+const { accessTokenValidation } = require("../utls/AuthFunctations");
+const { default: Delay } = require("../utls/Delay");
 const Authentication_Route = express.Router();
 
 const cookieOptions = {
@@ -25,54 +28,51 @@ const cookieOptions = {
   sameSite: prodMode ? "none" : "lax",
   domain: domain,
 };
-
-Authentication_Route.put("/generate-new-token", async (req, res) => {
-  const token = req.cookies.refresh_token;
-  if (!token) {
-    return sendError(res, 400, "Please Login Again");
-  }
-  //This will return payload even if token is expired
-  const payload = verifyRefreshToken(token.replace("bearer ", ""));
-  if (!payload) {
-    return res.clearCookie("access_token", cookieOptions).status(200).send({
-      success: false,
-      message: "Please Login Again",
-      data: {},
-    });
-  }
-  // Optionally check if token matches in DB
+Authentication_Route.get("/logout", async (req, res) => {
   try {
-    const tokenInDb = await RefreshToken.findOne({
-      token: token.replace("bearer ", ""),
-      user: payload.id,
+    const refreshToken = req.cookies.refresh_token;
+    if (!refreshToken) return clearTokens("Logout Successfully");
+    const mainRefreshToken = refreshToken.replace("bearer ", "");
+    const payload = await verifyAnyToken(mainRefreshToken, true, "refresh");
+    if (payload.error) return clearTokens("LogOut Successfully");
+    // Optionally check if token matches in DB
+
+    const tokenInDb = await RefreshToken.findOneAndDelete({
+      token: mainRefreshToken,
+      user: payload.payload.payload.id,
     });
-    if (!tokenInDb) {
-      return res.clearCookie("access_token", cookieOptions).status(200).send({
-        success: false,
-        message: "Please Login Again",
-        data: {},
-      });
+    clearTokens("LogOut Successfully");
+
+    function clearTokens(message = "Please login again.") {
+      res.clearCookie("access_token", cookieOptions);
+      res.clearCookie("refresh_token", cookieOptions);
+      return sendSuccess(res, 201, message);
     }
-    const user = await Users.findById(payload.id);
-    const tokenPayload = {
-      id: user._id,
-      role: user.role,
-      deviceId: payload.deviceId,
-    };
-    const accessToken = generateToken(tokenPayload, "30m");
-    res.cookie("access_token", `bearer ${accessToken}`, {
-      ...cookieOptions,
-      maxAge: 30 * 60 * 1000,
-    });
-    res.status(200).json({
-      success: true,
-      message: "Access Token Generated Successfully.",
-      data: {},
-    });
-  } catch (err) {
-    return sendError(res, 500, "Server error while validating token.");
+  } catch (error) {
+    console.log(error);
+    sendError(res, 400, "Server error during logout");
   }
 });
+Authentication_Route.get(
+  "/userInfo",
+  accessTokenValidation,
+  async (req, res) => {
+    try {
+      const user = req.user;
+      const id = user?.id;
+      if (!id) return sendError(res, 400, "User ID not found in token.");
+      await Delay(3 * 1000);
+      const userData = await Users.findById(id).select(
+        "_id name role phone cart bought_courses blocked"
+      );
+      if (!userData) return sendError(res, 404, "User not found.");
+      return sendSuccess(res, 200, "User info fetched successfully", userData);
+    } catch (error) {
+      console.log(error.message);
+      sendError(res, 500, "Server error while fetching user info.");
+    }
+  }
+);
 
 Authentication_Route.post("/register", async (req, res) => {
   try {
@@ -96,11 +96,11 @@ Authentication_Route.post("/register", async (req, res) => {
     });
     const savedUser = await newUser.save();
 
-    const userId = savedUser._id;
+    const userId = savedUser.id;
     const deviceId = generateUUID();
     const tokenPayload = { id: userId, role: "user", deviceId: deviceId };
-    const accessToken = generateToken(tokenPayload, "30m");
-    const refreshToken = generateRefreshToken(tokenPayload, "7d");
+    const accessToken = await generateToken(tokenPayload, "30m");
+    const refreshToken = await generateRefreshToken(tokenPayload, "7d");
 
     //send necessary cookies
     res.cookie("access_token", `bearer ${accessToken}`, {
@@ -138,7 +138,7 @@ Authentication_Route.post("/register", async (req, res) => {
 Authentication_Route.put("/login", async (req, res) => {
   try {
     const previousDeviceId = req.cookies["device_id"];
-    const { phone, password,remember } = req.body;
+    const { phone, password, remember } = req.body;
     // Basic validation
     if (!phone || !password)
       return sendError(res, 400, "Phone and password are required.");
@@ -149,14 +149,17 @@ Authentication_Route.put("/login", async (req, res) => {
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid)
       return sendError(res, 400, "Invalid phone or password.");
-    const userId = user._id;
+    const userId = user.id;
     let deviceId;
     //if device id exists from cookie then use it otherwise generate new one as device id has long expiry
     if (previousDeviceId) deviceId = previousDeviceId;
     else deviceId = generateUUID();
-    const tokenPayload = { id: userId, role: "user", deviceId: deviceId };
-    const accessToken = generateToken(tokenPayload, "30m");
-    const refreshToken = generateRefreshToken(tokenPayload, remember ? "7d" : "1d");
+    const tokenPayload = { id: userId, role: user.role, deviceId: deviceId };
+    const accessToken = await generateToken(tokenPayload, "30m");
+    const refreshToken = await generateRefreshToken(
+      tokenPayload,
+      remember ? "7d" : "1d"
+    );
     //send necessary cookies
     res.cookie("access_token", `bearer ${accessToken}`, {
       ...cookieOptions,
