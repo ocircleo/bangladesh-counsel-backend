@@ -7,7 +7,18 @@ const CourseSchema = new mongoose.Schema(
     description: { type: String, default: "no description" },
     course_image: String,
     course_image2: String,
-    category: { type: String, default: "no category" },
+    category: {
+      type: String,
+      default: "all",
+      enum: [
+        "all",
+        "art and creativity",
+        "language and comunication",
+        "technology and it",
+        "personal development",
+        "finace and investment",
+      ],
+    },
     release_date: { type: String, default: "31-11-2026" },
     course_location_type: {
       type: String,

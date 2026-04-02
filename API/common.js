@@ -10,7 +10,7 @@ const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
 common_router.get("/get-course/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    const course = await Courses.findById(id).populate({ path: "instructors", select: "name" });
+    const course = await Courses.findById(id).populate({ path: "instructors", select: "name" }).populate({path:"modules",select:"title description duration"});
     sendSuccess(res, 200, "Course fetched successfully", course);
   } catch (error) {
     console.log(error);
@@ -36,10 +36,12 @@ common_router.get("/get-course-basic-info/:id", async (req, res) => {
 common_router.get("/get-courses", async (req, res) => {
   try {
     //  await Delay(3000);
+    console.log(req.query);
     const text = req?.query?.text || "";
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+
     const filters = {};
     if (text.length > 0) filters["title"] = { $regex: text, $options: "i" };
     console.log(filters);

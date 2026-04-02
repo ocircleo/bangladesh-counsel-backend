@@ -5,7 +5,6 @@ const { hashPassword, comparePassword } = require("../utls/BCrypt");
 const {
   generateRefreshToken,
   generateToken,
-  verifyRefreshToken,
   verifyAnyToken,
 } = require("../utls/JWTFunctions");
 

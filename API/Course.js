@@ -2,10 +2,11 @@ const express = require("express");
 const course_router = express.Router();
 
 const { Courses } = require("../Models/Course");
+const { Modules } = require("../Models/CourseModels/Modules");
+
 const { sendSuccess, sendError } = require("../utls/ReturnFunctations");
 const { slugGenerator } = require("../utls/Slug");
 const { isUserAuthorized, accessTokenValidation } = require("../utls/AuthFunctations");
-const { Modules } = require("../Models/CourseModels/Modules");
 
 /**
  * @route DELETE /api/courses/create-course
@@ -41,7 +42,7 @@ course_router.post("/create-course",accessTokenValidation,isUserAuthorized, asyn
  * @route POST /api/courses/update-course
  * @access Private (Admin only)
  */
-course_router.post("/update-course",accessTokenValidation,isUserAuthorized, async (req, res) => {
+course_router.put("/update-course",accessTokenValidation,isUserAuthorized, async (req, res) => {
   try {
     const data = req.body.data;
     const id = req.body.id;
@@ -213,15 +214,43 @@ course_router.post("/add-course-module",accessTokenValidation,isUserAuthorized, 
  * @access Protected (Authorized users)
  * @state dev
  */
-course_router.post("/add-course-module",accessTokenValidation,isUserAuthorized, async (req, res) => {
+course_router.put("/update-course-module",accessTokenValidation,isUserAuthorized, async (req, res) => {
   try {
     let data = req.body?.data;
     const id = req.body?.moduleId;
-     // data = {title,description,published,isPublic,course(courseId)}
-    const updateResult = Modules.findByIdAndUpdate(id,data)
-    sendSuccess(res, 201, "Module added successfully", updateResult);
+
+    const updateResult = await Modules.findByIdAndUpdate(id,data);
+    sendSuccess(res, 201, "Module Updated successfully", updateResult);
   } catch (error) {
     sendError(res,400,error.message);
   }
 });
+/**
+ * @route DELETE /courses/delete-course-module
+ * @access Protected (Authorized users)
+ * @state dev
+ */
+course_router.delete("/delete-course-module",accessTokenValidation,isUserAuthorized, async (req, res) => {
+  try {
+    const id = req.body?.moduleId;
+    
+     // data = {title,description,published,isPublic,course(courseId)}
+    const moduleInfo = await Modules.findById(id);
+    if(!moduleInfo) return sendError(res,400,"Module not found");
+    const courseId = moduleInfo.course;
+    if(moduleInfo?.videos?.length > 0 ) return sendError(res,400,"Cannot delete module with existing videos");
+    if(moduleInfo?.resources?.length > 0 ) return sendError(res,400,"Cannot delete module with existing resources");
+
+    const deleteResult = await Modules.findByIdAndDelete(id);
+    const courseUpdateResult = await Courses.findByIdAndUpdate(
+      courseId,
+      { $pull: { modules: id } },
+      { new: true },
+    );
+    sendSuccess(res, 201, "Module Deleted successfully", deleteResult);
+  } catch (error) {
+    sendError(res,400,error.message);
+  }
+});
+
 module.exports = { course_router };
