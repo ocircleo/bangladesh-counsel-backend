@@ -16,7 +16,7 @@ async function findUserByPhone(phone) {
 async function findUserById(id) {
   try {
     const result = await pool.query(
-      "SELECT id, name, phone, email, role FROM users WHERE id = $1",
+      "SELECT id, name, phone, email, role, blocked FROM users WHERE id = $1",
       [id],
     );
 

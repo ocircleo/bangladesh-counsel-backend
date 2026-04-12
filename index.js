@@ -32,6 +32,8 @@ const { testRouter } = require("./test/test");
 //new update routes
 const AuthRoute = require("./src/auth/auth.route");
 const UserRoute = require("./src/modules/user/user.route");
+const courseRoute = require("./src/modules/courses/course.route");
+const commonRoute = require("./src/modules/common/common.route");
 
 //PORT Configurations
 const PORT = process.env.PORT ?? 5000;
@@ -46,7 +48,9 @@ server.use("/auth", pathMiddleWare, AuthRoute);
 server.use("/authv3",pathMiddleWare, AuthRoute);
 
 server.use("/common", pathMiddleWare, common_router);
+server.use("/commonv2", pathMiddleWare, commonRoute);
 server.use("/courses", pathMiddleWare, course_router);
+server.use("/coursesv2", pathMiddleWare, courseRoute);
 
 server.use("/user", pathMiddleWare, UserRoute);
 server.use("/admin", pathMiddleWare, isUserAuthorized, (req, res) => {

@@ -7,6 +7,7 @@ const {
 } = require("./JWTFunctions");
 const { sendError } = require("../res/ReturnFunctations");
 const pool = require("../../../core/db/pool");
+const { findUserById } = require("../../../repo/user/user");
 
 const cookieOptions = {
   httpOnly: true,
@@ -18,9 +19,9 @@ const cookieOptions = {
 // Need to fix this payload.payload.payload naming
 
 const accessTokenValidation = async (req, res, next) => {
-  const accessToken = req.cookies.access_token;
-  const refreshToken = req.cookies.refresh_token;
-
+  const accessToken = await req.cookies.access_token;
+  const refreshToken = await req.cookies.refresh_token;
+  
   if (!accessToken && !refreshToken)
     return clearTokens("No Tokens found at all...");
   //if there is no access token then we will surly have an refresh token
@@ -99,29 +100,19 @@ const refreshTokenValidation = async (id) => {
 
 const isUserAdmin = async (req, res, next) => {
   try {
-    const reqUser = req.user;
-    console.log(reqUser);
-    throw new Error("hello man");
-
-    const mainToken = token.replace("Bearer ", "");
-    const payload = verifyToken(mainToken);
-
-    if (!payload) {
-      return sendError(res, 401, "Invalid or expired token.");
-    }
-
-    const user = await Users.findById(payload.id);
-    if (!user || user.disabled) {
+    const reqUser = await req.user;
+    const userInDB = await findUserById(reqUser.id);
+    
+    if (userInDB.error || userInDB.data.blocked) {
       return sendError(res, 401, "User not found or disabled.");
     }
 
-    if (user.role !== "admin") {
+    if (userInDB.data.role !== "admin") {
       return sendError(res, 403, "Access denied. Admin privileges required.");
     }
-
-    req.user = user;
     next();
   } catch (error) {
+    console.log(error);
     return sendError(res, 500, "Server error during authorization.");
   }
 };

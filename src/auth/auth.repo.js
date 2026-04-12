@@ -3,7 +3,7 @@ const pool = require("../core/db/pool");
 async function findUserByPhone(phone) {
   try {
     const result = await pool.query(
-      "SELECT id, phone, password, role FROM users WHERE phone = $1",
+      "SELECT id, phone, password, role, email, name FROM users WHERE phone = $1",
       [phone],
     );
 

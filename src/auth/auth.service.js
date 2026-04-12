@@ -66,7 +66,7 @@ async function login(req, res) {
       tokenPayload,
       remember ? "7d" : "1d",
     );
-    
+
     //send necessary cookies
     res.cookie("access_token", `bearer ${accessToken}`, {
       ...cookieOptions,
@@ -82,10 +82,11 @@ async function login(req, res) {
     });
     //save refresh token in DB
     await saveRefreshToken([userId, deviceId, refreshToken]);
+
     res.status(200).json({
       success: true,
       message: "User logged in successfully.",
-      data: { userId, name: user.name, phone },
+      data: { userId, name: user?.data?.name, phone, email: user?.data?.email },
     });
     //save  log in DB afterwards because it's not critical to be saved before response and also to reduce response time
     //Hope this runs :)
@@ -165,11 +166,18 @@ async function logout(req, res) {
     const refreshToken = req.cookies.refresh_token;
     if (!refreshToken) return clearTokens("Logout Successfully");
     const mainRefreshToken = refreshToken.replace("bearer ", "");
-    const verificationResult = await verifyAnyToken(mainRefreshToken, true, "refresh");
+    const verificationResult = await verifyAnyToken(
+      mainRefreshToken,
+      true,
+      "refresh",
+    );
     if (verificationResult.error) return clearTokens("LogOut Successfully");
     // Optionally check if token matches in DB
 
-    await removeRefreshTokenById(verificationResult.payload.id, mainRefreshToken);
+    await removeRefreshTokenById(
+      verificationResult.payload.id,
+      mainRefreshToken,
+    );
     clearTokens("LogOut Successfully");
 
     function clearTokens(message = "Please login again.") {
@@ -201,6 +209,5 @@ async function userInfo(req, res) {
     sendError(res, 500, "Server error while fetching user info.");
   }
 }
-
 
 module.exports = { register, login, logout, userInfo };
