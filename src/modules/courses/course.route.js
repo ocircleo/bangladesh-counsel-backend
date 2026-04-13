@@ -30,7 +30,7 @@ courseRoute.post("/add-module", accessTokenValidation, isUserAdmin, addModule);
 courseRoute.put("/update-module", accessTokenValidation, isUserAdmin, updateModule);
 courseRoute.delete("/delete-module",accessTokenValidation,isUserAdmin, deleteModule);
 
-courseRoute.get("/admin-course-search", accessTokenValidation,isUserAdmin, adminCourseSearch)
+courseRoute.get("/admin-course-search", adminCourseSearch)
 courseRoute.get("/admin-course-by-id/:id",  adminCourseById)
 courseRoute.get("/admin-course-details/:courseId", courseDetaills)
 

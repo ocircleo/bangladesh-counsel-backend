@@ -97,6 +97,20 @@ async function searchCourseInDBAdmin(data) {
     return { error: true, message: error.message };
   }
 }
+async function searchCourseInDBAdminCount(data) {
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) FROM courses WHERE title ILIKE '%' || $1 || '%';",
+      data,
+    );
+
+    if (result.rowCount > 0)
+      return { error: false, message: "found data", data: result.rows[0]?.count };
+    return { error: true, message: "now Data found" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
 async function findCourseDetails(id) {
   try {
     const result = await pool.query(
@@ -137,4 +151,5 @@ module.exports = {
   deleteModuleInDB,
   searchCourseInDBAdmin,
   findCourseDetails,
+  searchCourseInDBAdminCount
 };

@@ -12,6 +12,7 @@ const {
   deleteModuleInDB,
   searchCourseInDBAdmin,
   findCourseDetails,
+  searchCourseInDBAdminCount,
 } = require("./course.repo");
 
 async function addCourse(req, res) {
@@ -155,12 +156,18 @@ async function adminCourseSearch(req, res) {
     const skip = (page - 1) * limit;
 
     let dataArray = [text, skip, limit];
-    const result = await searchCourseInDBAdmin(dataArray);
+    const [rows, countResult] = await Promise.all([
+      searchCourseInDBAdmin(dataArray),
+      searchCourseInDBAdminCount([text]),
+    ]);
 
-    if (result.error)
+    if (countResult.error)
       return sendError(res, 501, "Some error happned searching in db");
-
-    sendSuccess(res, 201, "test success", result.data);
+    const noOfPages = Math.ceil(parseInt(countResult?.data || 10) / limit);
+    sendSuccess(res, 201, "test success", {
+      courses: rows?.data,
+      count: noOfPages,
+    });
   } catch (error) {
     sendError(res, 401, error.message);
   }
@@ -184,7 +191,7 @@ async function courseDetaills(req, res) {
     const id = req.params.courseId;
 
     const result = await findCourseDetails([id]);
-   
+
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 
