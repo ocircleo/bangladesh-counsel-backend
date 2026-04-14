@@ -56,6 +56,7 @@ const accessTokenValidation = async (req, res, next) => {
 
     //Need to verify that current refresh token exists on database;
     const refreshTokenOnDb = await refreshTokenValidation(result.payload.id);
+    
     if (!refreshTokenOnDb) return clearTokens("Refresh Token invalid", true);
 
     let tokenMatch = false;
@@ -68,7 +69,7 @@ const accessTokenValidation = async (req, res, next) => {
 
     const newPayload = {
       id: result.payload.id,
-      role: refreshTokenOnDb.role,
+      role: refreshTokenOnDb[0].role,
       deviceId: result.payload.deviceId,
     };
     const newAccessToken = await generateToken(newPayload, "30m");

@@ -3,13 +3,13 @@ const {
   accessTokenValidation,
   isUserAdmin,
 } = require("../../shared/utility/cryptic/AuthFunctations");
-const { addCourse, updateCourse, addModule, updateModule, deleteModule, adminCourseSearch, adminCourseById, courseDetaills } = require("./course.service");
+const { addCourse, updateCourse, addModule, updateModule, deleteModule, adminCourseSearch, adminCourseById, courseDetaills, deleteCourse } = require("./course.service");
 
 const courseRoute = express.Router();
 
 courseRoute.post("/create-course", accessTokenValidation, isUserAdmin, addCourse);
 courseRoute.put("/update-course", accessTokenValidation, isUserAdmin, updateCourse);
-//courseRoute.delete("/delete-course/:id",accessTokenValidation,isUserAdmin,addCourse);
+courseRoute.delete("/delete-course/:courseId",accessTokenValidation,isUserAdmin, deleteCourse);
 
 
 /**

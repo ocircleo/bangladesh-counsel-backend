@@ -83,6 +83,17 @@ async function deleteModuleInDB(data) {
     return { error: true, message: error.message };
   }
 }
+async function deleteCourseInDb(data) {
+  try {
+    const result = await pool.query("DELETE FROM courses WHERE id = $1;", data);
+
+    if (result.rowCount > 0)
+      return { error: false, message: "Insertion Successfully" };
+    return { error: true, message: "No User Found" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
 async function searchCourseInDBAdmin(data) {
   try {
     const result = await pool.query(
@@ -105,7 +116,11 @@ async function searchCourseInDBAdminCount(data) {
     );
 
     if (result.rowCount > 0)
-      return { error: false, message: "found data", data: result.rows[0]?.count };
+      return {
+        error: false,
+        message: "found data",
+        data: result.rows[0]?.count,
+      };
     return { error: true, message: "now Data found" };
   } catch (error) {
     return { error: true, message: error.message };
@@ -122,10 +137,10 @@ async function findCourseDetails(id) {
           'id', users.id,
           'name', users.name
          )
-        ), '[]') FROM mentors
-        JOIN users ON users.id = mentors.user_id
-        WHERE mentors.course_id = courses.id
-       ) AS mentors,
+        ), '[]') FROM instructors
+        JOIN users ON users.id = instructors.user_id
+        WHERE instructors.course_id = courses.id
+       ) AS instructors,
 
        (
         SELECT COALESCE(json_agg(modules), '[]') FROM modules
@@ -151,5 +166,6 @@ module.exports = {
   deleteModuleInDB,
   searchCourseInDBAdmin,
   findCourseDetails,
-  searchCourseInDBAdminCount
+  searchCourseInDBAdminCount,
+  deleteCourseInDb,
 };

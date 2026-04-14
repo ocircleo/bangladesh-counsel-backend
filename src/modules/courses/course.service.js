@@ -13,6 +13,7 @@ const {
   searchCourseInDBAdmin,
   findCourseDetails,
   searchCourseInDBAdminCount,
+  deleteCourseInDb,
 } = require("./course.repo");
 
 async function addCourse(req, res) {
@@ -191,11 +192,31 @@ async function courseDetaills(req, res) {
     const id = req.params.courseId;
 
     const result = await findCourseDetails([id]);
-
+    console.log(result);
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 
     sendSuccess(res, 201, "test success", result.data);
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function deleteCourse(req, res) {
+  try {
+    const id = req.params.courseId;
+
+    const result = await findCourseDetails([id]);
+
+    if (result.error)
+      return sendError(res, 501, "Some error happned searching in db");
+
+    if (result?.data?.modules.length > 0)
+      return sendError(res, 501, "Remove Course Modules first.");
+
+    const deletionResult = await deleteCourseInDb([id]);
+    if (deletionResult.error)
+      return sendError(res, 501, "Some error happned Deleting course");
+    sendSuccess(res, 201, "Deletion Success", result.data);
   } catch (error) {
     sendError(res, 401, error.message);
   }
@@ -210,4 +231,5 @@ module.exports = {
   adminCourseSearch,
   adminCourseById,
   courseDetaills,
+  deleteCourse,
 };

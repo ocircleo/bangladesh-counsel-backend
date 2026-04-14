@@ -9,7 +9,7 @@ exports.shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 exports.up = (pgm) => {
-  pgm.createTable("mentors", {
+  pgm.createTable("instructors", {
     course_id: {
       type: "uuid",
       references: "courses",
@@ -28,5 +28,5 @@ exports.up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 exports.down = (pgm) => {
-  pgm.dropTable("mentors");
+  pgm.dropTable("instructors");
 };

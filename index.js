@@ -18,10 +18,7 @@ server.use(cookieParser());
 //utility functions
 const { pathMiddleWare } = require("./utls/RequestTimeInfo");
 const { mongooseConnect } = require("./utls/MongooseConnect");
-const {
-  isUserAuthorized,
-  accessTokenValidation,
-} = require("./utls/AuthFunctations");
+const { isUserAuthorized } = require("./utls/AuthFunctations");
 
 //Routes
 const { auth_router } = require("./Auth");
@@ -34,6 +31,11 @@ const AuthRoute = require("./src/auth/auth.route");
 const UserRoute = require("./src/modules/user/user.route");
 const courseRoute = require("./src/modules/courses/course.route");
 const commonRoute = require("./src/modules/common/common.route");
+const {
+  isUserAdmin,
+  accessTokenValidation,
+} = require("./src/shared/utility/cryptic/AuthFunctations");
+const adminRoute = require("./src/modules/admin/admin.route");
 
 //PORT Configurations
 const PORT = process.env.PORT ?? 5000;
@@ -45,7 +47,7 @@ server.get("/", (req, res) => {
   res.send({ message: "Welcome to BD Counsel Backend API" });
 });
 server.use("/auth", pathMiddleWare, AuthRoute);
-server.use("/authv3",pathMiddleWare, AuthRoute);
+server.use("/authv3", pathMiddleWare, AuthRoute);
 
 server.use("/common", pathMiddleWare, common_router);
 server.use("/commonv2", pathMiddleWare, commonRoute);
@@ -53,9 +55,13 @@ server.use("/courses", pathMiddleWare, course_router);
 server.use("/coursesv2", pathMiddleWare, courseRoute);
 
 server.use("/user", pathMiddleWare, UserRoute);
-server.use("/admin", pathMiddleWare, isUserAuthorized, (req, res) => {
-  res.send({ message: "Welcome to Admin Panel" });
-});
+server.use(
+  "/admin",
+  pathMiddleWare,
+  accessTokenValidation,
+  isUserAdmin,
+  adminRoute,
+);
 
 server.use("/test", pathMiddleWare, testRouter);
 server.use("/*all", pathMiddleWare, (req, res) => {
