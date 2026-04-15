@@ -1,4 +1,5 @@
 const pool = require("../../core/db/pool");
+const { withTransaction } = require("../../core/db/transaction");
 
 async function searchUsersInDB(data) {
   try {
@@ -49,7 +50,7 @@ async function searchUsersInDBCount(data) {
 async function blockUserInDB(data) {
   try {
     const result = await pool.query(
-      "UPDATE users SET blocked = true WHERE id = $1;",
+      "UPDATE users SET blocked = true WHERE id = $1 AND role != 'admin';",
       data,
     );
 
@@ -131,6 +132,78 @@ async function searchAdminsInDB() {
     return { error: true, message: error.message };
   }
 }
+/// We need an transaction hare
+// 1. need to make the user role to instructor
+// 2. need to insert data in instructors table
+async function addInstructorInDb(data) {
+  try {
+    const result = await withTransaction(async (client) => {
+      try {
+        const instructiorResult = await client.query(
+          "INSERT INTO instructors (course_id, user_id) VALUES ($1, $2);",
+          data,
+        );
+
+        const updateResult = await client.query(
+          "UPDATE users SET role = 'instructor' WHERE id = $1",
+          [data[1]],
+        );
+
+        return true;
+      } catch (error) {
+        console.log("transaction query error: ", error);
+        return false;
+      }
+    });
+
+    if (result)
+      return {
+        error: false,
+        message: "User Added as Instructor",
+      };
+    return { error: true, message: "Some Errror happned in transaction" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
+async function removeInstructorInDb(data) {
+  try {
+    const result = await withTransaction(async (client) => {
+      try {
+        const instructiorResult = await client.query(
+          "DELETE FROM instructors WHERE course_id = $1 AND user_id = $2;",
+          data,
+        );
+        const instructor = await pool.query(
+          "SELECT * FROM instructors WHERE user_id = $1",
+          [data[1]],
+        );
+        
+        if (instructor.rowCount <= 1) {
+          const roleConvertResult = await client.query(
+            "UPDATE users SET role = 'student' WHERE id = $1",
+            [data[1]],
+          );
+         
+        }
+
+        return true;
+      } catch (error) {
+        console.log("transaction query error: ", error);
+        return false;
+      }
+    });
+
+    if (result)
+      return {
+        error: false,
+        message: "User removed from Instructor",
+      };
+    return { error: true, message: "Some Errror happned in transaction" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
 module.exports = {
   searchUsersInDB,
   searchUsersInDBCount,
@@ -139,4 +212,6 @@ module.exports = {
   makeAdminInDb,
   removeAdminInDb,
   searchAdminsInDB,
+  addInstructorInDb,
+  removeInstructorInDb,
 };

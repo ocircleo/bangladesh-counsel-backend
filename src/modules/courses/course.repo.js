@@ -134,7 +134,7 @@ async function findCourseDetails(id) {
        (
         SELECT COALESCE(json_agg(
            json_build_object(
-          'id', users.id,
+          'phone', users.phone,
           'name', users.name
          )
         ), '[]') FROM instructors

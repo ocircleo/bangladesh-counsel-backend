@@ -192,7 +192,7 @@ async function courseDetaills(req, res) {
     const id = req.params.courseId;
 
     const result = await findCourseDetails([id]);
-    console.log(result);
+    
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 

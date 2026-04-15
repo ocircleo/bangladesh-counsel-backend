@@ -11,6 +11,8 @@ const {
   unBlockUserInDB,
   removeAdminInDb,
   searchAdminsInDB,
+  addInstructorInDb,
+  removeInstructorInDb,
 } = require("./admin.repo");
 
 async function searchUsers(req, res) {
@@ -60,7 +62,7 @@ async function blockUser(req, res) {
     const result = await blockUserInDB([id]);
 
     if (result.error)
-      return sendError(res, 501, "Some error happned searching in db");
+      return sendError(res, 501, "Some error happned Performing Request");
 
     sendSuccess(res, 201, "User blocked");
   } catch (error) {
@@ -86,7 +88,7 @@ async function makeAdmin(req, res) {
     const id = req.params.id;
 
     const result = await makeAdminInDb([id]);
-    
+
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 
@@ -112,6 +114,38 @@ async function removeAdmin(req, res) {
     sendError(res, 401, error.message);
   }
 }
+async function addInstructor(req, res) {
+  try {
+    const { course_id, user_id } = await req.body;
+
+    if (!course_id || !user_id)
+      return sendError(res, 501, "Course id and user id required");
+
+    const result = await addInstructorInDb([course_id, user_id]);
+
+    if (result.error) return sendError(res, 501, result.message);
+
+    sendSuccess(res, 201, "Instructor added");
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function removeInstructor(req, res) {
+  try {
+    const { course_id, user_id } = await req.body;
+
+    if (!course_id || !user_id)
+      return sendError(res, 501, "User id and course id required");
+
+    const result = await removeInstructorInDb([course_id, user_id]);
+
+    if (result.error) return sendError(res, 501, result.message);
+
+    sendSuccess(res, 201, "Instructor removed from Course");
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
 module.exports = {
   searchUsers,
   blockUser,
@@ -119,4 +153,6 @@ module.exports = {
   makeAdmin,
   removeAdmin,
   userDetaill,
+  addInstructor,
+  removeInstructor,
 };

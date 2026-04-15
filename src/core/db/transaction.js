@@ -10,7 +10,8 @@ async function withTransaction(callback) {
     return result;
   } catch (err) {
     await client.query("ROLLBACK");
-    throw err;
+    console.log("Transaction function error:",err);
+    return false;
   } finally {
     client.release();
   }
