@@ -1,4 +1,4 @@
-const mode = "prod"; //local, lan1, lan2, prod
+const mode = "lan1"; //local, lan1, lan2, prod
 
 const config = {
   local: "localhost",

@@ -3,7 +3,7 @@ const {
   accessTokenValidation,
   isUserAdmin,
 } = require("../../shared/utility/cryptic/AuthFunctations");
-const { addCourse, updateCourse, addModule, updateModule, deleteModule, adminCourseSearch, adminCourseById, courseDetaills, deleteCourse } = require("./course.service");
+const { addCourse, updateCourse, addModule, updateModule, deleteModule, adminCourseSearch, adminCourseById, courseDetaills, deleteCourse, courseDetaillsGeneral, signatureCourses, imageUploadInit, imageUploadRevert } = require("./course.service");
 
 const courseRoute = express.Router();
 
@@ -33,5 +33,21 @@ courseRoute.delete("/delete-module",accessTokenValidation,isUserAdmin, deleteMod
 courseRoute.get("/admin-course-search", adminCourseSearch)
 courseRoute.get("/admin-course-by-id/:id",  adminCourseById)
 courseRoute.get("/admin-course-details/:courseId", courseDetaills)
+
+courseRoute.post("/image-upload-init", accessTokenValidation, isUserAdmin, imageUploadInit)
+courseRoute.get("/image-upload-revert", imageUploadRevert)
+
+courseRoute.get("/course-details/:courseSlug", courseDetaillsGeneral)
+
+courseRoute.get("/signature-courses", signatureCourses)
+
+
+
+
+
+
+
+
+
 
 module.exports = courseRoute;

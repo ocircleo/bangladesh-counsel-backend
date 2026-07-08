@@ -5,7 +5,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 //middleware
-const { allowedCorsList } = require("./modeConfig");
+const { allowedCorsList } = require("./src/config/mode.Config");
 server.use(
   cors({
     origin: allowedCorsList,
@@ -15,46 +15,35 @@ server.use(
 server.use(express.json());
 server.use(cookieParser());
 
-//utility functions
-const { pathMiddleWare } = require("./utls/RequestTimeInfo");
-const { mongooseConnect } = require("./utls/MongooseConnect");
-const { isUserAuthorized } = require("./utls/AuthFunctations");
 
-//Routes
-const { auth_router } = require("./Auth");
-const { course_router } = require("./API/Course");
-const { common_router } = require("./API/common");
-const { Authentication_Route } = require("./API/Auth");
 const { testRouter } = require("./test/test");
 //new update routes
 const AuthRoute = require("./src/auth/auth.route");
-const UserRoute = require("./src/modules/user/user.route");
+// const UserRoute = require("./src/modules/user/user.route");
 const courseRoute = require("./src/modules/courses/course.route");
-const commonRoute = require("./src/modules/common/common.route");
+// const commonRoute = require("./src/modules/common/common.route");
 const {
   isUserAdmin,
   accessTokenValidation,
 } = require("./src/shared/utility/cryptic/AuthFunctations");
 const adminRoute = require("./src/modules/admin/admin.route");
+const { pathMiddleWare } = require("./src/shared/utility/RequestTimeInfo");
 
 //PORT Configurations
 const PORT = process.env.PORT ?? 5000;
 
-//DB Connect
-mongooseConnect();
-
+//ROUTES 
 server.get("/", (req, res) => {
   res.send({ message: "Welcome to BD Counsel Backend API" });
 });
 server.use("/auth", pathMiddleWare, AuthRoute);
 server.use("/authv3", pathMiddleWare, AuthRoute);
 
-server.use("/common", pathMiddleWare, common_router);
-server.use("/commonv2", pathMiddleWare, commonRoute);
-server.use("/courses", pathMiddleWare, course_router);
+
+// server.use("/commonv2", pathMiddleWare, commonRoute);
 server.use("/coursesv2", pathMiddleWare, courseRoute);
 
-server.use("/user", pathMiddleWare, UserRoute);
+// server.use("/user", pathMiddleWare, UserRoute);
 server.use(
   "/admin",
   pathMiddleWare,

@@ -14,6 +14,9 @@ const {
   findCourseDetails,
   searchCourseInDBAdminCount,
   deleteCourseInDb,
+  findCourseDetailsGeneralInDb,
+  findSignatureCoursesInDB,
+  insertImageInDB,
 } = require("./course.repo");
 
 async function addCourse(req, res) {
@@ -192,7 +195,21 @@ async function courseDetaills(req, res) {
     const id = req.params.courseId;
 
     const result = await findCourseDetails([id]);
-    
+
+    if (result.error)
+      return sendError(res, 501, "Some error happned searching in db");
+
+    sendSuccess(res, 201, "test success", result.data);
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function courseDetaillsGeneral(req, res) {
+  try {
+    const slug = req.params.courseSlug;
+
+    const result = await findCourseDetailsGeneralInDb([slug]);
+
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 
@@ -206,7 +223,7 @@ async function deleteCourse(req, res) {
     const id = req.params.courseId;
 
     const result = await findCourseDetails([id]);
-
+    console.log(result);
     if (result.error)
       return sendError(res, 501, "Some error happned searching in db");
 
@@ -217,6 +234,47 @@ async function deleteCourse(req, res) {
     if (deletionResult.error)
       return sendError(res, 501, "Some error happned Deleting course");
     sendSuccess(res, 201, "Deletion Success", result.data);
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function signatureCourses(req, res) {
+  try {
+    const result = await findSignatureCoursesInDB();
+
+    if (result.error) return sendError(res, 501, result.message);
+
+    sendSuccess(res, 201, result.message, result.data);
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function imageUploadInit(req, res) {
+  try {
+    const { courseId, directory, file_type, estimated_size, image_size_type } =
+      req.body;
+
+    const imageInsertData = [directory, file_type, estimated_size];
+    const result = await insertImageInDB(
+      imageInsertData,
+      courseId,
+      image_size_type,
+    );
+
+    if (result.error) return sendError(res, 501, result.message);
+
+    sendSuccess(res, 201, result.message, result.data);
+  } catch (error) {
+    sendError(res, 401, error.message);
+  }
+}
+async function imageUploadRevert(req, res) {
+  try {
+    const result = await findSignatureCoursesInDB();
+
+    if (result.error) return sendError(res, 501, result.message);
+
+    sendSuccess(res, 201, result.message, result.data);
   } catch (error) {
     sendError(res, 401, error.message);
   }
@@ -232,4 +290,8 @@ module.exports = {
   adminCourseById,
   courseDetaills,
   deleteCourse,
+  courseDetaillsGeneral,
+  signatureCourses,
+  imageUploadInit,
+  imageUploadRevert,
 };

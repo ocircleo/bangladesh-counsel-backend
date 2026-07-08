@@ -158,6 +158,152 @@ async function findCourseDetails(id) {
     return { error: true, message: error.message };
   }
 }
+async function findCourseDetailsGeneralInDb(slug) {
+  try {
+    const result = await pool.query(
+      `SELECT 
+    courses.id, courses.title, courses.description, courses.category, courses.course_type, courses.location_type, courses.price, courses.offer_price, courses.offer_end_date, courses.course_detail, courses.languages, thumbnail_rect.directory AS thumbnail_rect, thumbnail_square.directory AS thumbnail_square, ratings_data.avarage_rating, ratings_data.count,
+
+  COALESCE(modules_data.modules, '[]') AS modules,
+  COALESCE(instructors_data.instructors, '[]') AS instructors
+
+FROM courses
+
+LEFT JOIN LATERAL (
+  SELECT 
+    json_agg(
+      json_build_object(
+        'id', modules.id,
+        'title', modules.title
+      )
+    ) AS modules
+  FROM modules
+  WHERE 
+    modules.course_id = courses.id
+    AND modules.is_public = true
+) AS modules_data ON true
+
+LEFT JOIN LATERAL (
+  SELECT 
+    json_agg(
+      json_build_object(
+        'name', users.name,
+        'phone', users.phone
+      )
+    ) AS instructors
+  FROM instructors
+  LEFT JOIN users 
+    ON users.id = instructors.user_id
+  WHERE instructors.course_id = courses.id
+) AS instructors_data ON true
+
+LEFT JOIN LATERAL (
+  SELECT  directory 
+  FROM images
+  WHERE courses.thumbnail_rect = images.id
+) AS thumbnail_rect ON true
+
+LEFT JOIN LATERAL (
+  SELECT  directory 
+  FROM images
+  WHERE courses.thumbnail_square = images.id
+) AS thumbnail_square ON true
+
+LEFT JOIN LATERAL (
+SELECT ROUND(COALESCE(avg(ratings.rating),0.0),2) as avarage_rating, COUNT(*)
+FROM ratings
+WHERE ratings.course_id = courses.id
+) AS ratings_data ON true
+
+WHERE courses.slug = $1;`,
+      slug,
+    );
+
+    if (result.rowCount > 0)
+      return { error: false, message: "found data", data: result.rows[0] };
+    return { error: true, message: "now Data found" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
+async function findSignatureCoursesInDB() {
+  try {
+    const result = await pool.query(
+      `SELECT courses.id, courses.title, courses.slug, ratings_data.avarage_rating, react_image_data.directory AS thumbnail_rect, squre_image_data.directory AS thumbnail_square
+FROM courses
+
+LEFT JOIN LATERAL (
+SELECT ROUND(COALESCE(avg(ratings.rating),0.0),2) as avarage_rating
+FROM ratings
+WHERE ratings.course_id = courses.id
+) AS ratings_data ON true
+
+LEFT JOIN LATERAL (
+SELECT directory 
+FROM images
+WHERE images.id = courses.thumbnail_rect
+) AS react_image_data ON true
+
+LEFT JOIN LATERAL (
+SELECT directory 
+FROM images
+WHERE images.id = courses.thumbnail_square
+) AS squre_image_data ON true
+
+ORDER BY created_at ASC FETCH FIRST 6 ROWS ONLY;;
+       `,
+    );
+
+    if (result.rowCount > 0)
+      return { error: false, message: "found data", data: result.rows };
+    return { error: true, message: "now Data found" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
+async function insertImageInDB(data, courseId, image_size_type) {
+  try {
+    const result = await withTransaction(async (client) => {
+      try {
+        const insertImage = await client.query(
+          `INSERT INTO images
+           (directory, file_type, estimated_size)
+            VALUES ($1, $2, $3) RETURNING *;`,
+          data,
+        );
+        console.log({insertImage});
+        const courseUpdateData = [insertImage?.rows[0]?.id, courseId];
+        console.log({courseUpdateData});
+        let updateCourse;
+        if (image_size_type == "react")
+          updateCourse = await pool.query(
+            "UPDATE courses SET thumbnail_rect = $1 WHERE user_id = $2",
+            [data],
+          );
+        else
+          updateCourse = await pool.query(
+            "UPDATE courses SET thumbnail_square = $1 WHERE user_id = $2",
+            [data],
+          );
+        console.log({updateCourse});
+        return true;
+      } catch (error) {
+        console.log("transaction query error: ", error);
+        return false;
+      }
+    });
+
+    if (result)
+      return {
+        error: false,
+        message: "Failed to Insert images date in db",
+      };
+    return { error: true, message: "Some Errror happned in transaction" };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
+
 module.exports = {
   createCourseInDB,
   updateCourseInDB,
@@ -168,4 +314,7 @@ module.exports = {
   findCourseDetails,
   searchCourseInDBAdminCount,
   deleteCourseInDb,
+  findCourseDetailsGeneralInDb,
+  findSignatureCoursesInDB,
+  insertImageInDB,
 };

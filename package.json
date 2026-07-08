@@ -2,10 +2,10 @@
   "name": "bd_counsel_auth",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon server.js",
+    "start": "node server.js",
     "migrate": "node-pg-migrate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
